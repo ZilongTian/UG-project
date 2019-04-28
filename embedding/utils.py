@@ -38,11 +38,11 @@ def gsvd(A, d=100, const_b=0.8):
 
     #identity matrix
     I = sp.eye(A.shape[0]).tocsc()
-    #
+    #Kats index - S = inverse(Ma) * Mb
     Ma = I - b * A
     Mb = b * A
 
-    #Kats index - S = inverse(Ma) * Mb
+    #similarity matrix
     S = sLa.inv(Ma).multiply(Mb)
 
     #decomposition
