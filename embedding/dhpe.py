@@ -52,10 +52,11 @@ class DHPE(GraphEmbedding):
         Mb = self.b * self.A
 
         # similarity matrix
-        S = sLa.inv(Ma).multiply(Mb)
+        S = sLa.inv(Ma) @ (Mb)
 
         # decomposition
         l, s, r = sLa.svds(S, k=d)
+
         U = np.dot(l, np.diag(np.sqrt(s)))
 
         return l, s, r, Ma, Mb, U
@@ -89,10 +90,10 @@ class DHPE(GraphEmbedding):
 
     #calculate H and F.
     def get_HF(self, i, j, M, X):
-        return X.T[i, :] @ M @ X[:, j]
+        return np.dot(np.dot(X.T[i, :], M), X[:, j])
 
     def singular_to_eigen(self, Vl, s, Vr):
-        l = [np.dot(s, np.sign(np.dot(Vl[:, i], Vr[i, :]))) for i in range(0, s.shape[0])]
+        l = [np.dot(s[i], np.sign(np.dot(Vl[:, i], Vr[i, :]))) for i in range(0, s.shape[0])]
         return np.diag(np.array(l)), Vl
 
     def eigen_to_singular(self, L, X):
@@ -105,21 +106,15 @@ class DHPE(GraphEmbedding):
 
         # singular values
         Sigma = np.diag(s)
-        print(Sigma.shape)
 
         # transform singular to eigenvalue problems
         L, X = self.singular_to_eigen(Vl, s, Vr)
-
-        for change in self.growing:
-            #dA is the change of adjacency matrix
-            dA = self.build_adj(np.array(change))
-            self.dynamic_embedding(d, dA, Ma, Mb, L, X)
-
-
-        #dA is change of adjacency matrix
-        # dA = self.build_adj()
+        print(L.shape)
         #
-        # Fa = np.dot()
+        # for change in self.growing:
+        #     #dA is the change of adjacency matrix
+        #     dA = self.build_adj(np.array(change))
+        #     self.dynamic_embedding(d, dA, Ma, Mb, L, X)
 
 
 
