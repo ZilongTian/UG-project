@@ -14,12 +14,11 @@ def link_predict(embedding):
 				pred.append((i, j, weight))
 
 	#sort in decending order
-	#pred.sort(key=operator.itemgetter(2), reverse=True)
+	#pred.sort(key=operator.itemgetter(2))
 	predicted = []
 	for i,j,w in pred:
 		predicted.append((i,j))
 
-	print(len(predicted))
 	#filter
 	# actual = graph.get_train_data()
 	# predicted = list(set(predicted) - set(actual))

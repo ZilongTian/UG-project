@@ -61,36 +61,28 @@ class DHPE(GraphEmbedding):
 
         return l, s, r, Ma, Mb, U
 
-    def dynamic_embedding(self, d, dA, Ma, Mb, L, X):
+    def dynamic_embedding(self, d, dA, L, X, Fa, Fb):
         # dMa is change of Ma, dMb is change of Mb
         dMa = -self.b * dA
         dMb = self.b * dA
 
+        Ha = self.get_HF(dMa, X)
+        Hb = self.get_HF(dMb, X)
         for i in range(0, d):
             #change of eigenvalues
-            Ha = self.get_HF(i, i, dMa, X)
-            Hb = self.get_HF(i, i, dMb, X)
-            Fa = self.get_HF(i, i, Ma, X)
-            Fb = self.get_HF(i, i, Mb, X)
-            dl = (Hb - L[i]*Ha)/Fa
+            dl = (Hb[i, i] - L[i, i]*Ha[i, i])/Fa[i, i]
+            L[i, i] += dl
+            B = Hb - L[i, i] * Ha - dl * Fa
+            W = L[i, i] * Ha - Hb + L[i, i] * Fa - Fb
+            a = np.linalg.inv(W) * B
+            X[i] = np.dot(a[i, i], X[i, :])
 
-            B = Hb - (L[i] + dl) * Ha - dl * Fa
-            W = (L[i] + dl) * (self.gsum(d, i, dMa, X)) - (self.gsum(d, i, dMb, X)) + (L[i] + dl) * (self.gsum(d, i, Ma, X)) - (self.gsum(d, i, Mb, X))
-            # print(W)
-            # a = np.invert(W) * B
-            # print(a)
+        return L, X
 
-
-    def gsum(self, d, i, M, X):
-        v = 0
-        for j in range(0, d):
-            if i != j:
-                v += self.get_HF(i, j, M, X)
-        return v
 
     #calculate H and F.
-    def get_HF(self, i, j, M, X):
-        return np.dot(np.dot(X.T[i, :], M), X[:, j])
+    def get_HF(self, M, X):
+        return X.T @ M @ X
 
     def singular_to_eigen(self, Vl, s, Vr):
         l = [np.dot(s[i], np.sign(np.dot(Vl[:, i], Vr[i, :]))) for i in range(0, s.shape[0])]
@@ -109,12 +101,25 @@ class DHPE(GraphEmbedding):
 
         # transform singular to eigenvalue problems
         L, X = self.singular_to_eigen(Vl, s, Vr)
-        print(L.shape)
         #
-        # for change in self.growing:
-        #     #dA is the change of adjacency matrix
-        #     dA = self.build_adj(np.array(change))
-        #     self.dynamic_embedding(d, dA, Ma, Mb, L, X)
+        for change in self.growing:
+            #dA is the change of adjacency matrix
+            dA = self.build_adj(np.array(change))
+            Fa = self.get_HF(Ma, X)
+            Fb = self.get_HF(Mb, X)
+            nL, nX = self.dynamic_embedding(d, dA, L, X, Fa, Fb)
+
+            X, s = self.eigen_to_singular(nL, nX)
+
+            U = U + np.dot(X, np.sqrt(s))
+
+        self.U = U
+
+    def get_edge_weight(self, i, j):
+        return np.dot(self.U[i, :], self.U[j, :])
+
+    def get_testing_data(self):
+        return self.Y.copy()
 
 
 
